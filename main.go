@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"os"
-
+	"regexp"
 	"github.com/mlabouardy/nexus-cli/registry"
 	"github.com/urfave/cli"
 )
@@ -28,6 +28,12 @@ func main() {
 			Email: "mohamed@labouardy.com",
 		},
 	}
+	app.Flags = []cli.Flag{
+		cli.BoolTFlag{
+			Name: "silent",
+			Usage: "Computable output",
+		},
+	}
 	app.Commands = []cli.Command{
 		{
 			Name:  "configure",
@@ -43,6 +49,13 @@ func main() {
 				{
 					Name:  "ls",
 					Usage: "List all images in repository",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name: "regex-filter",
+							Value: ".*",
+							Usage: "Regex filter",
+						},
+					},
 					Action: func(c *cli.Context) error {
 						return listImages(c)
 					},
@@ -54,6 +67,11 @@ func main() {
 						cli.StringFlag{
 							Name:  "name, n",
 							Usage: "List tags by image name",
+						},
+						cli.StringFlag{
+							Name: "regex-filter",
+							Value: ".*",
+							Usage: "Regex filter",
 						},
 					},
 					Action: func(c *cli.Context) error {
@@ -87,6 +105,11 @@ func main() {
 						},
 						cli.StringFlag{
 							Name: "keep, k",
+						},
+						cli.StringFlag{
+							Name: "regex-filter",
+							Value: ".*",
+							Usage: "Regex filter",
 						},
 					},
 					Action: func(c *cli.Context) error {
@@ -163,10 +186,19 @@ func listImages(c *cli.Context) error {
 	if err != nil {
 		return cli.NewExitError(err.Error(), 1)
 	}
+	regexFilter := c.String("regex-filter")
 	for _, image := range images {
-		fmt.Println(image)
+		matched, err := regexp.MatchString(regexFilter, image)
+		if err != nil {
+			return cli.NewExitError(err.Error(), 1)
+		}
+		if matched {
+			fmt.Println(image)
+		}
 	}
-	fmt.Printf("Total images: %d\n", len(images))
+	if c.GlobalBoolT("silenter") {
+		fmt.Printf("Total images: %d\n", len(images))
+	}
 	return nil
 }
 
@@ -186,10 +218,19 @@ func listTagsByImage(c *cli.Context) error {
 	if err != nil {
 		return cli.NewExitError(err.Error(), 1)
 	}
+	regexFilter := c.String("regex-filter")
 	for _, tag := range tags {
-		fmt.Println(tag)
+		matched, err := regexp.MatchString(regexFilter, tag)
+		if err != nil {
+			return cli.NewExitError(err.Error(), 1)
+		}
+		if matched {
+			fmt.Println(tag)
+		}
 	}
-	fmt.Printf("There are %d images for %s\n", len(tags), imgName)
+	if c.Bool("silent") {
+		fmt.Printf("There are %d images for %s\n", len(tags), imgName)
+	}
 	return nil
 }
 
@@ -238,9 +279,22 @@ func deleteImage(c *cli.Context) error {
 				if err != nil {
 					return cli.NewExitError(err.Error(), 1)
 				}
+				regexFilter := c.String("regex-filter")
+				var filteredTags []string
+				for _, tag := range tags {
+					matched, err := regexp.MatchString(regexFilter, tag)
+					if err != nil {
+						return cli.NewExitError(err.Error(), 1)
+					}
+					if matched {
+						filteredTags = append(filteredTags, tag)
+					}					
+				}
 				if len(tags) >= keep {
 					for _, tag := range tags[:len(tags)-keep] {
-						fmt.Printf("%s:%s image will be deleted ...\n", imgName, tag)
+						if c.Bool("silent") {
+							fmt.Printf("%s:%s image will be deleted ...\n", imgName, tag)
+						}
 						r.DeleteImageByTag(imgName, tag)
 					}
 				} else {
@@ -290,7 +344,9 @@ func showTotalImageSize(c *cli.Context) error {
 				totalSize += size
 			}
 		}
-		fmt.Printf("%d %s\n", totalSize, imgName)
+		if c.Bool("silent") {
+			fmt.Printf("%d %s\n", totalSize, imgName)
+		}
 	}
 	return nil
 }
