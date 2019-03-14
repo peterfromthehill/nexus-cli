@@ -1,6 +1,6 @@
 package main
 
-import ("fmt"
+import (
 		"strings"
 		"unicode"
 		"math"
@@ -47,7 +47,6 @@ func cIsalpha(c byte) bool {
 }
 
 func cIsalnum(c byte) bool {
-	fmt.Printf("%c", c)
   return cIsalpha(c) || cIsdigit(c);
 }
 
