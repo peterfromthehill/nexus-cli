@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	CREDENTIALS_TEMPLATES = `# Nexus Credentials
+	credentialTemplate = `# Nexus Credentials
 nexus_host = "{{ .Host }}"
 nexus_username = "{{ .Username }}"
 nexus_password = "{{ .Password }}"
@@ -137,7 +137,7 @@ func setNexusCredentials(c *cli.Context) error {
 		repository,
 	}
 
-	tmpl, err := template.New(".credentials").Parse(CREDENTIALS_TEMPLATES)
+	tmpl, err := template.New(".credentials").Parse(credentialTemplate)
 	if err != nil {
 		return cli.NewExitError(err.Error(), 1)
 	}
@@ -181,10 +181,7 @@ func listTagsByImage(c *cli.Context) error {
 	}
 	tags, err := r.ListTagsByImage(imgName)
 
-	compareStringNumber := func(str1, str2 string) bool {
-		return extractNumberFromString(str1) < extractNumberFromString(str2)
-	}
-	Compare(compareStringNumber).Sort(tags)
+	Sort(tags)
 
 	if err != nil {
 		return cli.NewExitError(err.Error(), 1)
@@ -237,10 +234,7 @@ func deleteImage(c *cli.Context) error {
 				cli.ShowSubcommandHelp(c)
 			} else {
 				tags, err := r.ListTagsByImage(imgName)
-				compareStringNumber := func(str1, str2 string) bool {
-					return extractNumberFromString(str1) < extractNumberFromString(str2)
-				}
-				Compare(compareStringNumber).Sort(tags)
+				Sort(tags)
 				if err != nil {
 					return cli.NewExitError(err.Error(), 1)
 				}
