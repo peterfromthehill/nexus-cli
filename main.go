@@ -111,6 +111,9 @@ func main() {
 							Value: ".*",
 							Usage: "Regex filter",
 						},
+						cli.BoolTFlag{
+							Name: "dry",
+						},
 					},
 					Action: func(c *cli.Context) error {
 						return deleteImage(c)
@@ -290,15 +293,17 @@ func deleteImage(c *cli.Context) error {
 						filteredTags = append(filteredTags, tag)
 					}					
 				}
-				if len(tags) >= keep {
-					for _, tag := range tags[:len(tags)-keep] {
-						if c.Bool("silent") {
+				if len(filteredTags) >= keep {
+					for _, tag := range filteredTags[:len(filteredTags)-keep] {
+						if c.GlobalBool("silent") {
 							fmt.Printf("%s:%s image will be deleted ...\n", imgName, tag)
 						}
-						r.DeleteImageByTag(imgName, tag)
+						if !c.Bool("dry") {
+							r.DeleteImageByTag(imgName, tag)
+						}
 					}
 				} else {
-					fmt.Printf("Only %d images are available\n", len(tags))
+					fmt.Printf("Only %d images are available\n", len(filteredTags))
 				}
 			}
 		} else {
